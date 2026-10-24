@@ -1,0 +1,9 @@
+# KPackage-Build-Ausgaben
+*.tar.gz
+build/
+package/*.tar.gz
+
+# Editor und System
+*.kate-swp
+*.swp
+.DS_Store

@@ -1,0 +1,68 @@
+import QtQuick
+import QtQuick.Controls as QQC2
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+
+Kirigami.FormLayout {
+    id: page
+
+    property alias cfg_enabled: enabledBox.checked
+    property alias cfg_restLength: restLengthSpin.value
+    property alias cfg_panelIndex: panelIndexSpin.value
+    property alias cfg_onlyPanelScreen: onlyPanelScreenBox.checked
+    property alias cfg_includeFullscreen: includeFullscreenBox.checked
+    property alias cfg_sameDesktopOnly: sameDesktopBox.checked
+
+    QQC2.CheckBox {
+        id: enabledBox
+        Kirigami.FormData.label: i18n("Panelweite aktiv:")
+    }
+
+    QQC2.SpinBox {
+        id: restLengthSpin
+        Kirigami.FormData.label: i18n("Ruhelaenge (px):")
+        from: -1
+        to: 20000
+        stepSize: 10
+    }
+
+    QQC2.Label {
+        text: i18n("Die Laenge, auf die das Panel zurueckspringt. -1 laesst das Skript passiv, damit es nie ein Panel verbreitert, ohne es zurueckzusetzen. Der Wert wird von tools/install.sh gemessen und eingetragen.")
+        wrapMode: Text.WordWrap
+        font: Kirigami.Theme.smallFont
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+    }
+
+    Item {
+        Kirigami.FormData.isSection: true
+    }
+
+    QQC2.SpinBox {
+        id: panelIndexSpin
+        Kirigami.FormData.label: i18n("Panel-Index:")
+        from: 0
+        to: 16
+    }
+
+    QQC2.Label {
+        text: i18n("Position des Panels in der Plasma-Panel-Liste. Bei einem einzigen Panel bleibt 0 richtig.")
+        wrapMode: Text.WordWrap
+        font: Kirigami.Theme.smallFont
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 22
+    }
+
+    QQC2.CheckBox {
+        id: onlyPanelScreenBox
+        Kirigami.FormData.label: i18n("Nur eigener Bildschirm:")
+    }
+
+    QQC2.CheckBox {
+        id: sameDesktopBox
+        Kirigami.FormData.label: i18n("Nur aktueller Desktop:")
+    }
+
+    QQC2.CheckBox {
+        id: includeFullscreenBox
+        Kirigami.FormData.label: i18n("Auch bei Vollbild:")
+    }
+}

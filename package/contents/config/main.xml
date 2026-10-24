@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 https://standards.kde.org/schemas/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="Script-panelweite">
+    <entry name="enabled" type="Bool">
+      <label>Skript aktiv</label>
+      <default>true</default>
+    </entry>
+    <entry name="restLength" type="Int">
+      <label>Ruhelaenge des Panels in Pixeln (-1 = nicht gesetzt)</label>
+      <default>-1</default>
+    </entry>
+    <entry name="panelIndex" type="Int">
+      <label>Index des Panels in panels()</label>
+      <default>0</default>
+    </entry>
+    <entry name="onlyPanelScreen" type="Bool">
+      <label>Nur Fenster auf dem Bildschirm des Panels zaehlen</label>
+      <default>true</default>
+    </entry>
+    <entry name="includeFullscreen" type="Bool">
+      <label>Auch bei Vollbild-Fenstern verbreitern</label>
+      <default>false</default>
+    </entry>
+    <entry name="sameDesktopOnly" type="Bool">
+      <label>Nur Fenster auf dem aktuellen Desktop zaehlen</label>
+      <default>true</default>
+    </entry>
+  </group>
+</kcfg>

@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "panelweite",
+        "Name": "Panelweite",
+        "Description": "Das schwebende Panel wächst bei maximierten Fenstern auf die volle Bildschirmbreite und springt danach zurück",
+        "Icon": "preferences-system-windows",
+        "Authors": [
+            {
+                "Name": "JustRisu",
+                "Email": "JustRisu@users.noreply.github.com"
+            }
+        ],
+        "Version": "0.1.0",
+        "License": "MIT",
+        "Website": "https://github.com/JustRisu/panelweite"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js",
+    "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted"
+}
