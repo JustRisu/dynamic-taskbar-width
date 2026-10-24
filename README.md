@@ -68,7 +68,10 @@ from `[Script-dynamic-taskbar-width]` in `kwinrc`.
 With *Keep the icons in place* enabled the script does not set the panel length
 at all. It reads the current panel width from the dock window, works out
 `(screen width − panel width) / 2` and writes that value as the width of both
-spacer widgets. Because the panel is only as wide as its content, adding
+spacer widgets, six pixels short of the screen: at exactly the screen width the
+layout is at its limit and Plasma starts squeezing the two spacers unevenly,
+which moves the icons by tens of pixels. The gap disappears under the floating
+edge of the panel. Because the panel is only as wide as its content, adding
 `n` pixels on both ends widens it by `2n`, and the left edge moves left by
 exactly the amount the left spacer adds, so every widget keeps its absolute
 position.
@@ -78,7 +81,7 @@ Measured on a 3440 px screen:
 | State | Panel | Boots at | Kickoff | Task manager | Tray | Clock |
 |---|---|---|---|---|---|---|
 | window open, not maximized | 1396 px @ x=1022 | 1041 | 1097 | 2066 | 2304 |
-| maximized | 3438 px @ x=1 | 1041 | 1097 | 2066 | 2304 |
+| maximized | 3432 px @ x=4 | 1041 | 1097 | 2066 | 2304 |
 | restored | 1396 px @ x=1022 | 1041 | 1097 | 2066 | 2304 |
 
 (absolute x in pixels)

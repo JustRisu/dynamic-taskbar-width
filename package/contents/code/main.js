@@ -213,9 +213,15 @@ function expandPinned(output) {
             sendLength(full);
             return;
         }
-        var side = Math.round((full - rest) / 2);
+        // Six pixels short of the screen: at exactly the screen width the layout
+        // is at its limit and Plasma starts squeezing the spacers unevenly,
+        // which moves the icons by tens of pixels. The gap is invisible under
+        // the floating panel edge.
+        var target = full - 6;
+        var side = Math.max(0, Math.round((target - rest) / 2));
         print("dynamic-taskbar-width: panel " + rest + " px, screen " + full +
-              " px, spacer " + side + " px, content " + contentLength + " px");
+              " px, spacer " + side + " px, content " + contentLength +
+              " px, target " + target + " px");
         sendSpacerWidth(side);
     });
 }
@@ -247,7 +253,10 @@ function apply(expand) {
 }
 
 function update() {
-    if (!cfg || !cfg.enabled) {
+    // Re-read on every event so a change in the settings dialog takes effect
+    // without restarting KWin or the session.
+    loadConfig();
+    if (!cfg.enabled) {
         return;
     }
     if (!cfg.pinIcons && cfg.restLength < 0) {
