@@ -48,7 +48,8 @@ function loadConfig() {
         panelIndex: cfgInt("panelIndex", 0, PANEL_INDEX_MIN, PANEL_INDEX_MAX),
         onlyPanelScreen: cfgBool("onlyPanelScreen", true),
         includeFullscreen: cfgBool("includeFullscreen", false),
-        sameDesktopOnly: cfgBool("sameDesktopOnly", true)
+        sameDesktopOnly: cfgBool("sameDesktopOnly", true),
+        pinIcons: cfgBool("pinIcons", false)
     };
 }
 
@@ -136,6 +137,42 @@ function sendLength(length) {
     print("panelweite: panel " + cfg.panelIndex + " length -> " + n);
 }
 
+// Keeping the icons in place is done with two panel spacers: one at the very
+// start, one at the very end of the panel. They eat the extra width, so the
+// applets stay where they were. Without them Plasma spreads the applets over
+// the full length and the content wanders with the edges.
+//
+// Both states are created here and not in the installer, so the checkbox is the
+// single source of truth. The payload contains no foreign strings. evaluateScript
+// runs at top level, so a bare `return` would be a SyntaxError and the whole
+// payload would silently do nothing.
+function syncSpacers() {
+    var idx = cfg.panelIndex;
+    var payload;
+    if (cfg.pinIcons) {
+        payload = "var p = panels()[" + idx + "]; if (p) {" +
+                  " var ws = p.widgets(); var sp = [];" +
+                  " for (var i = 0; i < ws.length; i++) {" +
+                  "  if (ws[i].type === 'org.kde.plasma.panelspacer') { sp.push(ws[i]); }" +
+                  " }" +
+                  " while (sp.length < 2) { sp.push(p.addWidget('org.kde.plasma.panelspacer')); }" +
+                  " while (sp.length > 2) { sp.pop().remove(); }" +
+                  " sp[0].index = 0;" +
+                  " sp[sp.length - 1].index = 9999;" +
+                  " }";
+    } else {
+        payload = "var p = panels()[" + idx + "]; if (p) {" +
+                  " var ws = p.widgets();" +
+                  " for (var i = ws.length - 1; i >= 0; i--) {" +
+                  "  if (ws[i].type === 'org.kde.plasma.panelspacer') { ws[i].remove(); }" +
+                  " }" +
+                  " }";
+    }
+    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
+             "evaluateScript", payload);
+    print("panelweite: pin icons " + (cfg.pinIcons ? "on" : "off"));
+}
+
 function apply(expand) {
     if (expand === expanded) {
         return;
@@ -189,6 +226,7 @@ function init() {
         print("panelweite: no resting length configured, staying passive");
         return;
     }
+    syncSpacers();
     var wins = workspace.windowList();
     for (var i = 0; i < wins.length; i++) {
         watchWindow(wins[i]);

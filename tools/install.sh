@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Installiert Panelweite, misst die aktuelle Panel-Laenge und traegt sie als
-# Ruhelaenge ein. Ohne diesen Wert bleibt das Skript passiv, weil es sonst ein
-# Panel verbreitern koennte, ohne es zurueckzusetzen.
+# Installiert Panelweite, misst beim ersten Einrichten die aktuelle Panel-Laenge
+# und traegt sie als Ruhelaenge ein. Ohne diesen Wert bleibt das Skript passiv,
+# weil es sonst ein Panel verbreitern koennte, ohne es zurueckzusetzen.
+#
+# Eine bereits eingetragene Ruhelaenge wird NICHT ueberschrieben: der Wert kann
+# im Konfigurationsdialog bewusst gesetzt worden sein.
 
 set -euo pipefail
 
@@ -37,12 +40,17 @@ else
     say "Paket installiert."
 fi
 
-length="$(measure_length)"
-if [ -n "${length}" ] && [ "${length}" -gt 0 ] 2>/dev/null; then
-    kwriteconfig6 --file kwinrc --group "Script-$ID" --key restLength "$length"
-    say "Ruhelaenge gemessen und eingetragen: ${length} px"
+current="$(kreadconfig6 --file kwinrc --group "Script-$ID" --key restLength --default -1 2>/dev/null || echo -1)"
+if [ -n "${current}" ] && [ "${current}" -gt 0 ] 2>/dev/null; then
+    say "Ruhelaenge bleibt bei ${current} px (bereits eingetragen)."
 else
-    say "Ruhelaenge NICHT messbar. Bitte in den Einstellungen eintragen, sonst bleibt das Skript passiv."
+    length="$(measure_length)"
+    if [ -n "${length}" ] && [ "${length}" -gt 0 ] 2>/dev/null; then
+        kwriteconfig6 --file kwinrc --group "Script-$ID" --key restLength "$length"
+        say "Ruhelaenge gemessen und eingetragen: ${length} px"
+    else
+        say "Ruhelaenge NICHT messbar. Bitte in den Einstellungen eintragen, sonst bleibt das Skript passiv."
+    fi
 fi
 
 kwriteconfig6 --file kwinrc --group Plugins --key "${ID}Enabled" true

@@ -16,6 +16,10 @@
       <label>Index des Panels in panels()</label>
       <default>0</default>
     </entry>
+    <entry name="pinIcons" type="Bool">
+      <label>Symbole an ihrer Stelle lassen (zwei Panel-Spacer)</label>
+      <default>false</default>
+    </entry>
     <entry name="onlyPanelScreen" type="Bool">
       <label>Nur Fenster auf dem Bildschirm des Panels zaehlen</label>
       <default>true</default>
