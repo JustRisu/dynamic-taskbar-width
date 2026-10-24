@@ -3,25 +3,22 @@
 // Dynamic Taskbar Width on Maximized Windows (KWin script, Plasma 6).
 //
 // The floating panel grows to the full screen width while a window is
-// maximized and returns to its resting width afterwards. With pinIcons the
-// panel grows around its content: two spacer applets, one at each end, take
-// half of the extra width each, so the icons keep their absolute position
-// instead of sliding to the screen edges.
+// maximized and returns to its resting width afterwards. The icons keep their
+// absolute position: two spacer applets, one at each end, take half of the
+// extra width each, so the panel grows around its content instead of pushing
+// the content to the screen edges.
 //
-// Works in the two panel length modes where the panel is not screen-wide by
-// definition:
-//   fit     the panel is exactly as wide as its content. The spacers are part
-//           of that content, so widening them widens the panel.
-//   custom  the panel length is its content length clamped to
-//           [minimumLength, maximumLength]. The spacers still widen the
-//           content, and the clamp is widened for the time of the expansion so
-//           it cannot cut the panel back. Both clamps and the length are put
-//           back on the way out.
-//   fill    the panel is always screen-wide. Nothing to do, the script stays
-//           out of the way and says so once in the journal.
+// This needs the panel length mode "fit content": there the panel is exactly
+// as wide as its content, which is what makes the spacers widen it. In
+// "custom" the clamp and in "fill" the screen decide the width, and the
+// spacers cannot hold the icons there (measured, see README); the script stays
+// passive in both and says so once in the journal. It never writes the mode:
+// panelLengthMode belongs to the user.
 //
-// The mode is read at runtime and never written: the panel length mode belongs
-// to the user, and plasmashell persists it in plasmashellrc.
+// The transition is animated: the spacer width is stepped towards its target
+// over ANIM_MS with an ease-out curve, so the panel glides instead of jumping.
+// KWin's scripting engine has no setTimeout, but it does expose QTimer
+// (measured with KWin 6.8.1).
 //
 // Deliberately narrow: this script reads only its own configuration from
 // kwinrc and talks only to org.kde.plasmashell. No network, no file access,
@@ -35,14 +32,25 @@ var MAXIMIZED_BOTH = 3; // KWin maximise mode: horizontal + vertical
 var AREA_FULL = 3;      // KWin ClientAreaOption::FullArea
 var SPACERS_EXPECTED = 2;
 var SCREEN_SLACK = 6;   // pixels kept free, see expandPinned()
+// Plasma needs roughly 55 ms per layout round of the panel (measured: 12 spacer
+// writes in 190 ms produced only 3 visible width steps), so the frame rate is
+// slower than a display refresh on purpose: every frame should land.
+var ANIM_MS = 520;      // length of one transition
+var FRAME_MS = 26;      // about 20 frames, of which ~9 become visible
 
 var cfg = null;
 var expanded = null;    // null = unknown, true/false = the state we applied
-var appliedMode = null; // 'fit', 'custom' or 'fill': what we did last time
-var saved = null;       // resting length and clamps of the current expansion
+var appliedMode = null; // what we did last time: 'fit', 'custom', 'fill' or 'unknown'
 var want = null;        // latest requested state, the D-Bus answer acts on it
-var acting = false;     // a state query is in flight
-var fillLogged = false; // the fill-mode note goes to the journal once
+var acting = false;     // a state query or an animation is in flight
+var modeLogged = false; // the unsupported-mode note goes to the journal once
+
+var spacerNow = -1;     // spacer width the panel currently has, -1 = unknown
+var animTimer = null;
+var animFrom = 0;
+var animTo = 0;
+var animT0 = 0;
+var animDone = null;
 
 function cfgInt(key, fallback, min, max) {
     var raw = readConfig(key, fallback);
@@ -176,8 +184,8 @@ function sendLength(length) {
 }
 
 // Width of both spacer applets. Zero restores the resting width, a positive
-// value adds exactly that much panel on each side, because the panel grows
-// around its content in fit-content and in custom mode.
+// value adds exactly that much panel on each side, because the panel is only
+// as wide as its content in fit-content mode.
 function sendSpacerWidth(width) {
     var n = parseInt(width, 10);
     if (isNaN(n) || n < 0 || n > LENGTH_MAX) {
@@ -194,50 +202,27 @@ function sendSpacerWidth(width) {
         "w.writeConfig('length', " + n + "); w.reloadConfig(); } } }";
     callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
              "evaluateScript", payload);
-    print("dynamic-taskbar-width: spacer width -> " + n);
 }
 
-// The length clamp of a custom-length panel, persisted by plasmashell in
-// plasmashellrc. max first: setMinimumLength() raises the maximum when the new
-// minimum is larger, which would leave the pair inconsistent the other way
-// round. Both values are checked integers.
-function sendClamp(min, max) {
-    var a = parseInt(min, 10);
-    var b = parseInt(max, 10);
-    if (isNaN(a) || isNaN(b) || a < LENGTH_MIN || b < LENGTH_MIN ||
-        a > LENGTH_MAX || b > LENGTH_MAX) {
-        print("dynamic-taskbar-width: refusing clamp " + min + "/" + max);
-        return;
-    }
-    var payload =
-        "var p = panels()[" + cfg.panelIndex + "];" +
-        "if (p) { p.maximumLength = " + b + "; p.minimumLength = " + a + "; }";
-    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
-             "evaluateScript", payload);
-    print("dynamic-taskbar-width: clamps -> " + a + ".." + b);
-}
-
-// Reads mode, length, clamp and the number of spacer applets in one call.
+// Reads mode, length and the number of spacer applets in one call.
 // evaluateScript answers with whatever print() produced, and callDBus hands
 // that answer to the callback (measured with plasmashell 6.8.1).
 function queryPanelState(callback) {
     var payload =
-        "var out = 'DTW -1 0 none -1 -1';" +
+        "var out = 'DTW -1 0 none -1';" +
         "var p = panels()[" + cfg.panelIndex + "];" +
-        "if (p) { var n = 0; var ws = p.widgets();" +
+        "if (p) { var n = 0; var len = -1; var ws = p.widgets();" +
         "for (var i = 0; i < ws.length; i++) {" +
         "ws[i].currentConfigGroup = ['General'];";
     payload +=
         "var r = ws[i].readConfig('dtwRole', '');" +
-        "if (r === 'left' || r === 'right') { n++; } }" +
-        "out = 'DTW ' + p.length + ' ' + n + ' ' + p.lengthMode + ' ' +";
-    payload +=
-        " p.minimumLength + ' ' + p.maximumLength; }" +
+        "if (r === 'left' || r === 'right') { n++; if (len < 0) { len = parseInt(ws[i].readConfig('length', -1), 10); } } }" +
+        "out = 'DTW ' + p.length + ' ' + n + ' ' + p.lengthMode + ' ' + len; }" +
         "print(out);";
     callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
              "evaluateScript", payload,
              function (reply) {
-                 var m = /DTW\s+(-?\d+)\s+(\d+)\s+(\w+)\s+(-?\d+)\s+(-?\d+)/.exec(String(reply || ""));
+                 var m = /DTW\s+(-?\d+)\s+(\d+)\s+(\w+)\s+(-?\d+)/.exec(String(reply || ""));
                  if (!m) {
                      callback(null);
                      return;
@@ -246,18 +231,80 @@ function queryPanelState(callback) {
                      length: parseInt(m[1], 10),
                      spacers: parseInt(m[2], 10),
                      mode: m[3],
-                     min: parseInt(m[4], 10),
-                     max: parseInt(m[5], 10)
+                     spacerLen: parseInt(m[4], 10)
                  });
              });
 }
 
-function targetWidth(full) {
-    // Six pixels short of the screen: at exactly the screen width the layout is
-    // at its limit and Plasma starts squeezing the spacers unevenly, which
-    // moves the icons by tens of pixels. The gap is invisible under the
-    // floating panel edge.
-    return full - SCREEN_SLACK;
+// Ease-out: fast start, gentle landing. Keeps the growth readable without
+// looking like a rubber band.
+function easeOut(t) {
+    var inv = 1 - t;
+    return 1 - inv * inv * inv;
+}
+
+// Steps the spacer width from its current value to the target over ANIM_MS.
+// One QTimer drives the frames; every change goes to plasmashell, which
+// re-lays out the panel, so the panel glides. A new call while running simply
+// re-targets from wherever the animation currently is.
+function animateSpacers(to, done) {
+    var target = Math.max(0, Math.min(LENGTH_MAX, parseInt(to, 10) || 0));
+    if (animTimer === null) {
+        animTimer = new QTimer();
+        animTimer.interval = FRAME_MS;
+        animTimer.singleShot = false;
+        animTimer.timeout.connect(animTick);
+    }
+    animDone = done;
+    animFrom = spacerNow;
+    animTo = target;
+    animT0 = Date.now();
+    if (target === spacerNow) {
+        finishAnimation();
+        return;
+    }
+    if (!animTimer.active) {
+        animTimer.start();
+    }
+}
+
+function animTick() {
+    var t = (Date.now() - animT0) / ANIM_MS;
+    if (t >= 1) {
+        spacerNow = animTo;
+        sendSpacerWidth(spacerNow);
+        finishAnimation();
+        return;
+    }
+    var value = Math.round(animFrom + (animTo - animFrom) * easeOut(t));
+    if (value !== spacerNow) {
+        spacerNow = value;
+        sendSpacerWidth(spacerNow);
+    }
+}
+
+function finishAnimation() {
+    if (animTimer !== null && animTimer.active) {
+        animTimer.stop();
+    }
+    var cb = animDone;
+    animDone = null;
+    if (cb) {
+        cb();
+    }
+}
+
+function unsupported(mode, done) {
+    appliedMode = mode;
+    if (!modeLogged) {
+        modeLogged = true;
+        if (mode === "fill") {
+            print("dynamic-taskbar-width: panel length mode is 'fill', the panel is always as wide as the screen there, so there is nothing to widen. Icon pinning needs 'fit content'.");
+        } else {
+            print("dynamic-taskbar-width: panel length mode is '" + mode + "', but icon pinning needs 'fit content': there the panel is exactly as wide as its content, which is what makes the spacers widen it. In 'custom' the clamp and in 'fill' the screen decide the width, and the icons cannot be held. Staying passive.");
+        }
+    }
+    done();
 }
 
 function expandPinned(output, done) {
@@ -277,13 +324,8 @@ function expandPinned(output, done) {
             done();
             return;
         }
-        if (st.mode === "fill") {
-            appliedMode = "fill";
-            if (!fillLogged) {
-                fillLogged = true;
-                print("dynamic-taskbar-width: panel length mode is 'fill', the panel is always as wide as the screen there, so there is nothing to widen. Use 'fit content' or 'custom' to let the panel grow around its icons.");
-            }
-            done();
+        if (st.mode !== "fit") {
+            unsupported(st.mode, done);
             return;
         }
         if (rest < LENGTH_MIN || rest >= full) {
@@ -293,94 +335,61 @@ function expandPinned(output, done) {
             done();
             return;
         }
-        var target = targetWidth(full);
-        saved = {rest: rest, length: st.length, min: st.min, max: st.max};
-        appliedMode = st.mode;
-        var side = Math.max(0, Math.round((target - rest) / 2));
-        if (st.mode === "custom") {
-            // In custom mode the panel is its content length clamped to
-            // [minimumLength, maximumLength], which gives two different cases:
-            //  - the spacers can push the content up to the target, then only
-            //    the clamp has to allow it and the spacers do the work;
-            //  - the clamp is already wider than the content (a panel with a
-            //    fixed length, min == max). Then the clamp dictates the width
-            //    and spacers only shift the content around, so the clamp is
-            //    pinned to the target instead and the spacers stay at zero.
-            if (st.length + 2 * side < st.min) {
-                print("dynamic-taskbar-width: custom mode, the clamp " + st.min +
-                      ".." + st.max + " is wider than the panel content, so it " +
-                      "sets the width: pinning it to " + target + " px, the icons " +
-                      "cannot be held in this mode");
-                sendClamp(target, target);
-                done();
-                return;
-            }
-            var lo = Math.min(st.min, target);
-            var hi = Math.max(st.max, target);
-            sendClamp(lo, hi);
-        }
         if (st.spacers < SPACERS_EXPECTED) {
             print("dynamic-taskbar-width: only " + st.spacers + " spacers found, falling back to a plain length change");
-            if (st.mode === "custom") {
-                // A plain length change does not hold, the clamp does.
-                sendClamp(target, target);
-            } else {
-                sendLength(full);
-            }
+            sendLength(full);
+            appliedMode = "unknown";
             done();
             return;
         }
-        print("dynamic-taskbar-width: " + st.mode + " mode, panel " + rest +
-              " px, screen " + full + " px, spacer " + side + " px, target " +
-              target + " px");
-        sendSpacerWidth(side);
-        done();
+        // Six pixels short of the screen: at exactly the screen width the
+        // layout is at its limit and Plasma starts squeezing the spacers
+        // unevenly, which moves the icons by tens of pixels. The gap is
+        // invisible under the floating panel edge.
+        if (st.spacerLen >= 0) {
+            spacerNow = st.spacerLen;
+        }
+        var target = full - SCREEN_SLACK;
+        var side = Math.max(0, Math.round((target - rest) / 2));
+        print("dynamic-taskbar-width: fit mode, panel " + rest + " px, screen " +
+              full + " px, spacer " + side + " px, target " + target + " px");
+        appliedMode = "fit";
+        animateSpacers(side, done);
     });
 }
 
-function collapse() {
-    if (appliedMode === "fill") {
-        // Nothing was changed, nothing to undo.
+function collapse(done) {
+    if (appliedMode === "custom" || appliedMode === "fill") {
+        // Nothing was changed in an unsupported mode, nothing to undo.
         appliedMode = null;
+        done();
         return;
     }
-    if (appliedMode === "fit" || appliedMode === "unknown") {
-        sendSpacerWidth(0);
-        if (saved !== null) {
-            sendLength(saved.length);
-            print("dynamic-taskbar-width: back to the resting width " + saved.rest +
-                  " px (length " + saved.length + " px)");
-        }
-        saved = null;
+    if (appliedMode === "unknown") {
+        // The fallback used a plain length change; the resting length comes
+        // from the settings there.
         appliedMode = null;
-        return;
-    }
-    if (appliedMode === "custom") {
-        sendSpacerWidth(0);
-        if (saved !== null) {
-            // Spacers zero first, then the clamp: restoring a minimum that is
-            // larger than the current content would snap the panel wide again.
-            sendClamp(saved.min, saved.max);
-            sendLength(saved.length);
-            print("dynamic-taskbar-width: back to the resting width " + saved.rest +
-                  " px, clamps " + saved.min + ".." + saved.max);
-        }
-        saved = null;
-        appliedMode = null;
+        done();
         return;
     }
     appliedMode = null;
+    animateSpacers(0, done);
 }
 
-// One state query at a time. Events arrive faster than a D-Bus round trip, so
-// the callback always works on the latest requested state and loops once more
-// when another change came in meanwhile.
+// One state query or animation at a time. Events arrive faster than a D-Bus
+// round trip, so the callback always works on the latest requested state and
+// loops once more when another change came in meanwhile.
 function step() {
     if (acting || want === null || want === expanded) {
         return;
     }
     acting = true;
     var goal = want;
+    var finish = function () {
+        acting = false;
+        expanded = goal;
+        step();
+    };
     if (goal) {
         var dock = panelDock();
         var output = (dock && dock.output) ? dock.output : workspace.activeScreen;
@@ -389,22 +398,19 @@ function step() {
             return;
         }
         if (cfg.pinIcons) {
-            // expandPinned answers asynchronously through its callback, so the
-            // state is only marked as applied once the panel query returned.
-            expandPinned(output, function () {
-                acting = false;
-                expanded = goal;
-                step();
-            });
-            return;
+            expandPinned(output, finish);
+        } else {
+            sendLength(fullLength(output));
+            finish();
         }
-        sendLength(fullLength(output));
-    } else {
-        collapse();
+        return;
     }
-    expanded = goal;
-    acting = false;
-    step();
+    if (cfg.pinIcons) {
+        collapse(finish);
+    } else {
+        sendLength(cfg.restLength);
+        finish();
+    }
 }
 
 function apply(expand) {
@@ -433,7 +439,7 @@ function watchWindow(w) {
         // A restarted plasmashell creates a new dock; resync from scratch.
         expanded = null;
         want = null;
-        saved = null;
+        spacerNow = 0;
         appliedMode = null;
         update();
         return;
@@ -469,6 +475,12 @@ function init() {
     workspace.screensChanged.connect(update);
     print("dynamic-taskbar-width: started, pinIcons " + cfg.pinIcons +
           ", resting length " + cfg.restLength + " px");
+    if (cfg.pinIcons) {
+        // The spacer width is part of the applet configuration, so a shell
+        // restart can carry a half-grown spacer from an interrupted animation.
+        sendSpacerWidth(0);
+        spacerNow = 0;
+    }
     update();
 }
 

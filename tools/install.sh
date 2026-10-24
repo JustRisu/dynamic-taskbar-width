@@ -11,10 +11,10 @@
 #  - [Script-dynamic-taskbar-width] restLength, measured once from the running
 #    panel and never overwritten afterwards
 #
-# What it deliberately does NOT change: the panel length mode. The script reads
-# it at runtime and works in fit content and in custom; in fill the panel is
-# always as wide as the screen and the script stays passive. Changing the mode
-# is the user's decision, so it only happens with --set-mode.
+# What it deliberately does NOT change: the panel length mode. The icon pinning
+# needs fit content; the script reads the mode at runtime, stays passive in
+# custom and fill and says so in the journal. Changing the mode is the user's
+# decision, so it only happens with --set-mode.
 #
 #   ./install.sh                     install or upgrade
 #   ./install.sh --check             report the state, change nothing
@@ -119,14 +119,11 @@ report_mode() {
             say "  content, so the two spacers widen it and the icons keep their place."
             ;;
         custom)
-            say "Panel length mode: custom - the panel follows its content within the"
-            say "  clamp ${clamp:-?} (minimumLength..maximumLength). The script widens the"
-            say "  clamp while a window is maximized so the panel can reach the screen"
-            say "  edge, and restores the old values afterwards."
-            if [ -n "$clamp" ] && [ "${clamp%%..*}" = "${clamp##*..}" ]; then
-                say "  Note: both ends of the clamp are the same, so the panel has a fixed"
-                say "  length. Drag the ruler in the panel settings to give it a range."
-            fi
+            say "Panel length mode: custom (clamp ${clamp:-?}) - the clamp decides the"
+            say "  width, not the content, so the spacer applets cannot hold the icons"
+            say "  while the panel grows. The script stays passive here and says so in"
+            say "  the journal. Switch to fit content to use the icon pinning:"
+            say "  ./tools/install.sh --set-mode fit"
             ;;
         fill)
             say "Panel length mode: fill - the panel is always as wide as the screen."
@@ -166,6 +163,9 @@ if [ "${1:-}" = "--set-mode" ]; then
         if [ "$after" = "$wanted" ]; then
             say "Panel length mode changed from '${before:-unknown}' to '$wanted'."
             say "Revert with: ./tools/install.sh --set-mode ${before:-fit}"
+            if [ "$wanted" = "custom" ]; then
+                say "Note: the icon pinning needs fit content, so it stays passive in custom."
+            fi
             exit 0
         fi
     fi
