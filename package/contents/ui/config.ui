@@ -14,7 +14,7 @@
    <item row="0" column="0">
     <widget class="QLabel" name="labelEnabled">
      <property name="text">
-      <string>Panel full width enabled</string>
+      <string>Dynamic taskbar width enabled</string>
      </property>
     </widget>
    </item>

@@ -3,7 +3,7 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 https://standards.kde.org/schemas/kcfg/1.0/kcfg.xsd">
   <kcfgfile name=""/>
-  <group name="Script-panel-full-width">
+  <group name="Script-dynamic-taskbar-width">
     <entry name="enabled" type="Bool">
       <label>Script enabled</label>
       <default>true</default>

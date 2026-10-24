@@ -1,9 +1,9 @@
 {
     "KPackageStructure": "KWin/Script",
     "KPlugin": {
-        "Id": "panel-full-width",
-        "Name": "Panel Full Width on Maximized Windows",
-        "Name[de]": "Panel volle Breite bei maximierten Fenstern",
+        "Id": "dynamic-taskbar-width",
+        "Name": "Dynamic Taskbar Width on Maximized Windows",
+        "Name[de]": "Dynamische Taskleistenbreite bei maximierten Fenstern",
         "Description": "The panel grows to the full screen width while a window is maximized and returns to its resting length afterwards",
         "Description[de]": "Das Panel wächst auf die volle Bildschirmbreite, während ein Fenster maximiert ist, und springt danach auf seine Ruhelänge zurück",
         "Icon": "preferences-system-windows",
@@ -15,10 +15,10 @@
         ],
         "Version": "0.3.0",
         "License": "MIT",
-        "Website": "https://github.com/JustRisu/panel-full-width"
+        "Website": "https://github.com/JustRisu/dynamic-taskbar-width"
     },
     "X-Plasma-API": "javascript",
     "X-Plasma-MainScript": "code/main.js",
     "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted",
-    "X-KWin-Config-TranslationDomain": "panel-full-width"
+    "X-KWin-Config-TranslationDomain": "dynamic-taskbar-width"
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //
-// Panel Full Width on Maximized Windows (KWin script, Plasma 6).
+// Dynamic Taskbar Width on Maximized Windows (KWin script, Plasma 6).
 //
 // The floating panel grows to the full screen width while a window is
 // maximized and returns to its resting length afterwards.
@@ -131,13 +131,13 @@ function wantsFullWidth() {
 function sendLength(length) {
     var n = parseInt(length, 10);
     if (isNaN(n) || n < LENGTH_MIN || n > LENGTH_MAX) {
-        print("panel-full-width: refusing length " + length);
+        print("dynamic-taskbar-width: refusing length " + length);
         return;
     }
     var payload = "var p = panels()[" + cfg.panelIndex + "]; if (p) { p.length = " + n + "; }";
     callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
              "evaluateScript", payload);
-    print("panel-full-width: panel " + cfg.panelIndex + " length -> " + n);
+    print("dynamic-taskbar-width: panel " + cfg.panelIndex + " length -> " + n);
 }
 
 function apply(expand) {
@@ -186,11 +186,11 @@ function watchWindow(w) {
 function init() {
     loadConfig();
     if (!cfg.enabled) {
-        print("panel-full-width: disabled in configuration");
+        print("dynamic-taskbar-width: disabled in configuration");
         return;
     }
     if (cfg.restLength < 0) {
-        print("panel-full-width: no resting length configured, staying passive");
+        print("dynamic-taskbar-width: no resting length configured, staying passive");
         return;
     }
     var wins = workspace.windowList();
@@ -204,7 +204,7 @@ function init() {
     workspace.windowRemoved.connect(update);
     workspace.currentDesktopChanged.connect(update);
     workspace.screensChanged.connect(update);
-    print("panel-full-width: started, resting length " + cfg.restLength + " px");
+    print("dynamic-taskbar-width: started, resting length " + cfg.restLength + " px");
     update();
 }
 
