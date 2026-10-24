@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>430</width>
-    <height>340</height>
+    <height>430</height>
    </rect>
   </property>
   <layout class="QFormLayout" name="formLayout">
@@ -83,20 +83,37 @@
     </widget>
    </item>
    <item row="5" column="0" colspan="2">
+    <widget class="QCheckBox" name="kcfg_pinIcons">
+     <property name="text">
+      <string>Keep the icons in place while the panel grows</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0" colspan="2">
+    <widget class="QLabel" name="hintPinIcons">
+     <property name="text">
+      <string>Uses the two spacer widgets tools/install.sh adds to the panel: empty edges grow instead of the content moving to the screen edges. Needs a panel in fit-content mode.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="2">
     <widget class="QCheckBox" name="kcfg_onlyPanelScreen">
      <property name="text">
       <string>Only count windows on the panel's screen</string>
      </property>
     </widget>
    </item>
-   <item row="6" column="0" colspan="2">
+   <item row="8" column="0" colspan="2">
     <widget class="QCheckBox" name="kcfg_sameDesktopOnly">
      <property name="text">
       <string>Only count windows on the current desktop</string>
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="2">
+   <item row="9" column="0" colspan="2">
     <widget class="QCheckBox" name="kcfg_includeFullscreen">
      <property name="text">
       <string>Also expand for fullscreen windows</string>

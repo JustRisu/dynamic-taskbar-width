@@ -3,7 +3,10 @@
 // Dynamic Taskbar Width on Maximized Windows (KWin script, Plasma 6).
 //
 // The floating panel grows to the full screen width while a window is
-// maximized and returns to its resting length afterwards.
+// maximized and returns to its resting length afterwards. With pinIcons the
+// panel grows around its content: two spacer applets, one at each end, take
+// half of the extra width each, so the icons keep their absolute position
+// instead of sliding to the screen edges.
 //
 // Deliberately narrow: this script reads only its own configuration from
 // kwinrc and talks only to org.kde.plasmashell. No network, no file access,
@@ -15,6 +18,7 @@ var PANEL_INDEX_MIN = 0;
 var PANEL_INDEX_MAX = 16;
 var MAXIMIZED_BOTH = 3; // KWin maximise mode: horizontal + vertical
 var AREA_FULL = 3;      // KWin ClientAreaOption::FullArea
+var SPACERS_EXPECTED = 2;
 
 var cfg = null;
 var expanded = null; // null = unknown, true/false = the state we applied
@@ -48,6 +52,7 @@ function loadConfig() {
         enabled: cfgBool("enabled", true),
         restLength: cfgInt("restLength", -1, -1, LENGTH_MAX),
         panelIndex: cfgInt("panelIndex", 0, PANEL_INDEX_MIN, PANEL_INDEX_MAX),
+        pinIcons: cfgBool("pinIcons", false),
         onlyPanelScreen: cfgBool("onlyPanelScreen", true),
         includeFullscreen: cfgBool("includeFullscreen", false),
         sameDesktopOnly: cfgBool("sameDesktopOnly", true)
@@ -124,10 +129,11 @@ function wantsFullWidth() {
     return false;
 }
 
-// The only outbound call. The value is a validated integer, so no window title,
-// class name or other foreign string can reach the script payload. Note that
-// evaluateScript runs at top level: a bare `return` there would be a SyntaxError
-// and the whole payload would silently do nothing.
+// The only outbound calls. Every value that reaches a payload is a checked
+// integer, so no window title, class name or other foreign string can end up
+// in the evaluated script. Note that evaluateScript runs at top level: a bare
+// `return` there would be a SyntaxError and the whole payload would silently
+// do nothing.
 function sendLength(length) {
     var n = parseInt(length, 10);
     if (isNaN(n) || n < LENGTH_MIN || n > LENGTH_MAX) {
@@ -140,6 +146,80 @@ function sendLength(length) {
     print("dynamic-taskbar-width: panel " + cfg.panelIndex + " length -> " + n);
 }
 
+// Width of both spacer applets. Zero restores the resting width, a positive
+// value adds exactly that much panel on each side, because the panel is only
+// as wide as its content in fit-content mode.
+function sendSpacerWidth(width) {
+    var n = parseInt(width, 10);
+    if (isNaN(n) || n < 0 || n > LENGTH_MAX) {
+        print("dynamic-taskbar-width: refusing spacer width " + width);
+        return;
+    }
+    var payload =
+        "var p = panels()[" + cfg.panelIndex + "];" +
+        "if (p) { var ws = p.widgets();" +
+        "for (var i = 0; i < ws.length; i++) {" +
+        "var w = ws[i]; w.currentConfigGroup = ['General'];" +
+        "var r = w.readConfig('dtwRole', '');" +
+        "if (r === 'left' || r === 'right') {" +
+        "w.writeConfig('length', " + n + "); w.reloadConfig(); } } }";
+    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
+             "evaluateScript", payload);
+    print("dynamic-taskbar-width: spacer width -> " + n);
+}
+
+// Reads the current panel length and counts the spacer applets in one call.
+// evaluateScript answers with whatever print() produced, and callDBus hands
+// that answer to the callback (measured with plasmashell 6.8.1).
+function queryPanelState(callback) {
+    var payload =
+        "var out = 'DTW -1 0';" +
+        "var p = panels()[" + cfg.panelIndex + "];" +
+        "if (p) { var n = 0; var ws = p.widgets();" +
+        "for (var i = 0; i < ws.length; i++) {" +
+        "ws[i].currentConfigGroup = ['General'];" +
+        "var r = ws[i].readConfig('dtwRole', '');" +
+        "if (r === 'left' || r === 'right') { n++; } }" +
+        "out = 'DTW ' + p.length + ' ' + n; }" +
+        "print(out);";
+    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
+             "evaluateScript", payload,
+             function (reply) {
+                 var m = /DTW\s+(-?\d+)\s+(\d+)/.exec(String(reply || ""));
+                 if (!m) {
+                     callback(-1, -1);
+                     return;
+                 }
+                 callback(parseInt(m[1], 10), parseInt(m[2], 10));
+             });
+}
+
+function expandPinned(output) {
+    var full = fullLength(output);
+    // The dock window is exactly the visible panel (measured: 1062,1368 1316x72
+    // for a 1316 px panel), so its width is the number the spacers have to make
+    // up for. The content length reported by evaluateScript is 16 px smaller
+    // because of the floating paddings and would leave the icons 8 px off.
+    var dock = panelDock();
+    var rest = dock ? Math.round(dock.frameGeometry.width) : -1;
+    queryPanelState(function (contentLength, spacers) {
+        if (spacers < SPACERS_EXPECTED) {
+            print("dynamic-taskbar-width: only " + spacers + " spacers found, falling back to a plain length change");
+            sendLength(full);
+            return;
+        }
+        if (rest < LENGTH_MIN || rest >= full) {
+            print("dynamic-taskbar-width: panel width " + rest + " unusable, falling back to a plain length change");
+            sendLength(full);
+            return;
+        }
+        var side = Math.round((full - rest) / 2);
+        print("dynamic-taskbar-width: panel " + rest + " px, screen " + full +
+              " px, spacer " + side + " px, content " + contentLength + " px");
+        sendSpacerWidth(side);
+    });
+}
+
 function apply(expand) {
     if (expand === expanded) {
         return;
@@ -150,16 +230,27 @@ function apply(expand) {
         if (!output) {
             return;
         }
-        sendLength(fullLength(output));
+        if (cfg.pinIcons) {
+            expandPinned(output);
+        } else {
+            sendLength(fullLength(output));
+        }
         expanded = true;
     } else {
-        sendLength(cfg.restLength);
+        if (cfg.pinIcons) {
+            sendSpacerWidth(0);
+        } else {
+            sendLength(cfg.restLength);
+        }
         expanded = false;
     }
 }
 
 function update() {
-    if (!cfg || !cfg.enabled || cfg.restLength < 0) {
+    if (!cfg || !cfg.enabled) {
+        return;
+    }
+    if (!cfg.pinIcons && cfg.restLength < 0) {
         return;
     }
     apply(wantsFullWidth());
@@ -189,7 +280,7 @@ function init() {
         print("dynamic-taskbar-width: disabled in configuration");
         return;
     }
-    if (cfg.restLength < 0) {
+    if (!cfg.pinIcons && cfg.restLength < 0) {
         print("dynamic-taskbar-width: no resting length configured, staying passive");
         return;
     }
@@ -204,7 +295,8 @@ function init() {
     workspace.windowRemoved.connect(update);
     workspace.currentDesktopChanged.connect(update);
     workspace.screensChanged.connect(update);
-    print("dynamic-taskbar-width: started, resting length " + cfg.restLength + " px");
+    print("dynamic-taskbar-width: started, pinIcons " + cfg.pinIcons +
+          ", resting length " + cfg.restLength + " px");
     update();
 }
 
