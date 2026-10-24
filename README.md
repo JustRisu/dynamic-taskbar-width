@@ -66,7 +66,7 @@ Zahnrad. Dort lassen sich ändern:
   verändert, muss der Wert in den Einstellungen nachgezogen werden.
 - **Persistenz:** Die per `evaluateScript` gesetzte Länge landet nicht in
   `plasma-org.kde.plasma.desktop-appletsrc` (gemessen mit md5 vor und nach dem
-  Setzen). Ein Absturz hinterlässt therefore kein breites Panel; beim Start
+  Setzen). Ein Absturz hinterlässt deshalb kein breites Panel; beim Start
   normalisiert das Skript trotzdem.
 - **Nur ein Panel.** Bei mehreren Panels wird das breiteste Dock als Panel
   erkannt, gesetzt wird `panels()[panelIndex]`.
