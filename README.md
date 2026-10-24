@@ -22,9 +22,10 @@ system language.
 - `qdbus6`, `kpackagetool6`, `kwriteconfig6`, `python3` (all shipped with Plasma
   or a normal desktop install)
 
-In **custom** and **fill** mode the icons cannot be held while the panel grows
-(measured, see the limits below), so the script stays out of the way and writes
-one line to the journal explaining that.
+In **custom** mode the clamp carries the width, so the panel grows there too,
+but the icons travel with the edge (measured 239 px, see the limits below). In
+**fill** mode the panel is screen-wide already; the script writes one line to
+the journal and stays out of the way.
 
 ## What the script does per panel length mode
 
@@ -35,7 +36,7 @@ the script.
 | Mode | Panel width | What the script does |
 |---|---|---|
 | `fit` (fit content) | content width + floating paddings | animates both spacer widgets to `(screen − panel) / 2`, the panel glides around them, the icons stay |
-| `custom` | content width + paddings, clamped to `[minimumLength, maximumLength]` | nothing, one journal line explaining why |
+| `custom` | content width + paddings, clamped to `[minimumLength, maximumLength]` | pins the clamp to the target while expanded and restores the old values on the way back; the panel grows, the icons move with it |
 | `fill` | always the screen width | nothing, one journal line explaining why |
 
 ## Installation
@@ -98,6 +99,14 @@ Because the panel is only as wide as its content in fit content mode, adding
 exactly the amount the left spacer adds, so every widget keeps its absolute
 position.
 
+In custom mode the same arithmetic does not apply: the clamp decides the width
+instead, so the script pins `minimumLength` and `maximumLength` to the target
+for the duration of the expansion and restores the previous pair afterwards.
+The panel then grows, but the row is laid out over the whole panel and the
+icons move with it. Both values are written by the script, so plasmashell
+persists them in `plasmashellrc`; if the shell is killed while a window is
+maximized, the pinned clamp stays in the file until the next cycle.
+
 ### One layout step, no animation
 
 The spacer width is written once, Plasma re-lays out the panel once, and the
@@ -144,13 +153,13 @@ move to the edges.
 
 ## Limitations
 
-- **Only `fit content` is supported.** In `custom` mode the clamp decides the
-  width and in `fill` mode the screen does, so the spacers cannot hold the
-  icons there. Measured with a 2956 px custom panel that had to reach 3434 px:
-  the icons moved by `(3434 − 2956) / 2 = 239 px`, and the applet row was
-  either capped at 2944 px or stretched over the whole panel, not reproducibly
-  the same in two runs. The script reports the mode once in the journal and
-  stays passive.
+- **In `custom` mode the icons do not stay.** The clamp dictates the width, so
+  the panel does grow, but the spacers cannot hold the content: Plasma lays the
+  applet row out over the whole panel and it travels with the edge. Measured
+  with a 2956 px panel that has to reach 3434 px: every visible widget moved by
+  `(3434 − 2956) / 2 = 239 px`, and came back exactly. A spacer trick that held
+  them within 1 px in a manual run did not reproduce in a real maximize cycle,
+  so it is not built in. Use `fit content` if the icons have to stay put.
 - **Tiling** (dragging a window to the edge, KWin 6 tiling) is not evaluated.
   Only real maximization counts.
 - **The panel length is a result, not a setting.** In Plasma 6.8

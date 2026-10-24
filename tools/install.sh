@@ -11,10 +11,10 @@
 #  - [Script-dynamic-taskbar-width] restLength, measured once from the running
 #    panel and never overwritten afterwards
 #
-# What it deliberately does NOT change: the panel length mode. The icon pinning
-# needs fit content; the script reads the mode at runtime, stays passive in
-# custom and fill and says so in the journal. Changing the mode is the user's
-# decision, so it only happens with --set-mode.
+# What it deliberately does NOT change: the panel length mode. The script reads
+# it at runtime and works in fit content and custom; only in fill is there
+# nothing to widen. Changing the mode is the user's decision, so it only
+# happens with --set-mode.
 #
 #   ./install.sh                     install or upgrade
 #   ./install.sh --check             report the state, change nothing
@@ -120,10 +120,9 @@ report_mode() {
             ;;
         custom)
             say "Panel length mode: custom (clamp ${clamp:-?}) - the clamp decides the"
-            say "  width, not the content, so the spacer applets cannot hold the icons"
-            say "  while the panel grows. The script stays passive here and says so in"
-            say "  the journal. Switch to fit content to use the icon pinning:"
-            say "  ./tools/install.sh --set-mode fit"
+            say "  width, so the script pins it to the target while a window is"
+            say "  maximized and restores the old values afterwards. The panel grows;"
+            say "  the icons travel with the edge. Use fit content if they have to stay."
             ;;
         fill)
             say "Panel length mode: fill - the panel is always as wide as the screen."
@@ -164,7 +163,8 @@ if [ "${1:-}" = "--set-mode" ]; then
             say "Panel length mode changed from '${before:-unknown}' to '$wanted'."
             say "Revert with: ./tools/install.sh --set-mode ${before:-fit}"
             if [ "$wanted" = "custom" ]; then
-                say "Note: the icon pinning needs fit content, so it stays passive in custom."
+                say "Note: in custom the panel grows through its clamp, and the icons move"
+                say "  with it. fit content keeps them in place."
             fi
             exit 0
         fi
