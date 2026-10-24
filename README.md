@@ -1,8 +1,9 @@
 # Dynamic Taskbar Width on Maximized Windows
 
-A KWin script for KDE Plasma 6: the floating panel glides to the full screen
-width while a window is maximized, and glides back when the window is restored.
-The icons keep their absolute position instead of sliding to the screen edges.
+A KWin script for KDE Plasma 6: the floating panel grows to the full screen
+width while a window is maximized, and returns to its resting width when the
+window is restored. The icons keep their absolute position instead of sliding
+to the screen edges.
 
 **Languages:** English, German. The script and its settings page follow the
 system language.
@@ -97,24 +98,18 @@ Because the panel is only as wide as its content in fit content mode, adding
 exactly the amount the left spacer adds, so every widget keeps its absolute
 position.
 
-### The transition is animated
+### One layout step, no animation
 
-The spacer width is not written once and then left alone. A `QTimer` steps it
-towards the target over 520 ms with an ease-out curve, and every step that
-changes the value goes to plasmashell, which re-lays out the panel. KWin's
-scripting engine has no `setTimeout`, but it does expose `QTimer` (measured).
+The spacer width is written once, Plasma re-lays out the panel once, and the
+panel reaches its target width in a single step. Measured with the dock
+window sampled every 20 ms: exactly one width change, 1396 px to 3432 px.
 
-The frame interval is 26 ms, slower than a display refresh on purpose: Plasma
-needs roughly 55 ms per layout round of the panel, so faster frames would only
-be dropped. Measured on a 3440 px screen, dock width during one expansion:
-
-```
-1396 → 1706 → 1966 → 2206 → 2586 → 2888 → 3184 → 3432 px   (9 visible steps)
-```
-
-With a 16 ms interval the same transition produced only 3 visible steps, which
-looked like a jump with hiccups. A new maximize or restore while the animation
-runs re-targets it from wherever it currently is.
+An animated version was built and removed again: a `QTimer` stepped the
+spacer width over 520 ms with an ease-out curve. Plasma needs about 55 ms per
+layout round, so that transition landed in nine visible jumps of 250 to
+300 px each, which looked worse than the single step. (KWin's scripting
+engine has no `setTimeout`, but it does expose `QTimer`, so the approach is
+possible, just not better here.)
 
 ### Measured cycle
 
@@ -162,9 +157,6 @@ move to the edges.
   `panel.length` is bound to the content width (`Panel.qml`), so writing it does
   not stick; the panel width follows its content. That is why the spacers are
   the mechanism and why `restLength` only matters for the fallback path.
-- **The step count depends on the machine.** Plasma's layout round sets the
-  pace, so a slower machine or a heavier theme produces fewer visible steps at
-  the same interval. The interval is a compromise, not a guarantee.
 - **The resting width follows the task list.** In a floating, centred panel
   Plasma recomputes the width when tasks appear or disappear: measured 1316 px
   with no extra task and 1396 px with one. The script measures the width at the

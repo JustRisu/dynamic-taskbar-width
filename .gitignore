@@ -7,3 +7,7 @@ package/*.tar.gz
 *.kate-swp
 *.swp
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
