@@ -1,0 +1,45 @@
+# German translation for panel-full-width.
+msgid ""
+msgstr ""
+"Project-Id-Version: panel-full-width 0.3.0\n"
+"Report-Msgid-Bugs-To: https://github.com/JustRisu/panel-full-width/issues\n"
+"PO-Revision-Date: 2026-10-24 18:00+0000\n"
+"Last-Translator: JustRisu\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "Config"
+msgid "Panel full width enabled"
+msgstr "Panelweite aktiv"
+
+msgctxt "Config"
+msgid "Resting length (px)"
+msgstr "Ruhelänge (px)"
+
+msgctxt "Config"
+msgid "Length the panel returns to. -1 keeps the script passive, so it never widens a panel without a known way back. tools/install.sh measures and fills this in on the first install."
+msgstr "Länge, auf die das Panel zurückspringt. -1 lässt das Skript passiv, damit es nie ein Panel verbreitert, ohne einen bekannten Rückweg. tools/install.sh misst den Wert und trägt ihn bei der ersten Installation ein."
+
+msgctxt "Config"
+msgid "Panel index"
+msgstr "Panel-Index"
+
+msgctxt "Config"
+msgid "Position of the panel in the plasma panel list. With a single panel, 0 is correct."
+msgstr "Position des Panels in der Plasma-Panel-Liste. Bei einem einzigen Panel ist 0 richtig."
+
+msgctxt "Config"
+msgid "Only count windows on the panel's screen"
+msgstr "Nur Fenster auf dem Bildschirm des Panels zählen"
+
+msgctxt "Config"
+msgid "Only count windows on the current desktop"
+msgstr "Nur Fenster auf dem aktuellen Desktop zählen"
+
+msgctxt "Config"
+msgid "Also expand for fullscreen windows"
+msgstr "Auch bei Vollbild-Fenstern verbreitern"

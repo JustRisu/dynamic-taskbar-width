@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Installiert Panelweite, misst beim ersten Einrichten die aktuelle Panel-Laenge
-# und traegt sie als Ruhelaenge ein. Ohne diesen Wert bleibt das Skript passiv,
-# weil es sonst ein Panel verbreitern koennte, ohne es zurueckzusetzen.
+# Installs Panel Full Width, measures the current panel length on the first run
+# and writes it as the resting length. Without that value the script stays
+# passive, because it must never widen a panel without a known way back.
 #
-# Eine bereits eingetragene Ruhelaenge wird NICHT ueberschrieben: der Wert kann
-# im Konfigurationsdialog bewusst gesetzt worden sein.
+# An already configured resting length is never overwritten: it may have been
+# set in the settings dialog on purpose.
 
 set -euo pipefail
 
-ID="panelweite"
+ID="panel-full-width"
+OLD_ID="panelweite"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PKG="$HERE/package"
 SKRIPT="$HOME/.local/share/kwin/scripts/$ID/contents/code/main.js"
@@ -19,52 +20,64 @@ say() { printf '%s\n' "$*"; }
 
 kwin() { qdbus6 org.kde.KWin "$@"; }
 
-# evaluateScript liefert die print()-Ausgabe als Antwort auf den D-Bus-Aufruf
-# zurueck, qdbus6 schreibt sie nach stdout (gemessen am 24.10.2026 mit
-# plasmashell 6.8.1). Kein Umweg ueber das Journal noetig.
+# evaluateScript returns the print() output as the reply to the D-Bus call and
+# qdbus6 writes it to stdout (measured 2026-10-24 with plasmashell 6.8.1).
 measure_length() {
-    local marker="PANELWEITE_MEASURE_$RANDOM$RANDOM"
+    local marker="PANELFULLWIDTH_MEASURE_$RANDOM$RANDOM"
     local code="print('$marker ' + panels()[0].length);"
     local out
     out="$(qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "$code" 2>&1 || true)"
     printf '%s\n' "$out" | sed -n "s/.*$marker \([0-9]\{1,6\}\).*/\1/p" | tail -n1
 }
 
-say "== Panelweite installieren"
+say "== Installing Panel Full Width"
 
 if kpackagetool6 --type KWin/Script --list 2>/dev/null | grep -qx "$ID"; then
     kpackagetool6 --type KWin/Script --upgrade "$PKG"
-    say "Paket aktualisiert."
+    say "Package updated."
 else
     kpackagetool6 --type KWin/Script --install "$PKG"
-    say "Paket installiert."
+    say "Package installed."
 fi
+
+# Migration from the former name "panelweite": keep the measured value, drop
+# the old package and its configuration group.
+old_rest="$(kreadconfig6 --file kwinrc --group "Script-$OLD_ID" --key restLength --default -1 2>/dev/null || echo -1)"
+if [ -n "${old_rest}" ] && [ "${old_rest}" -gt 0 ] 2>/dev/null; then
+    kwriteconfig6 --file kwinrc --group "Script-$ID" --key restLength "$old_rest"
+    say "Resting length migrated from $OLD_ID: ${old_rest} px"
+fi
+if kpackagetool6 --type KWin/Script --list 2>/dev/null | grep -qx "$OLD_ID"; then
+    kpackagetool6 --type KWin/Script --remove "$OLD_ID" || true
+    say "Old package $OLD_ID removed."
+fi
+kwriteconfig6 --file kwinrc --group Plugins --key "${OLD_ID}Enabled" --delete 2>/dev/null || true
+kwriteconfig6 --file kwinrc --group "Script-$OLD_ID" --delete 2>/dev/null || true
 
 current="$(kreadconfig6 --file kwinrc --group "Script-$ID" --key restLength --default -1 2>/dev/null || echo -1)"
 if [ -n "${current}" ] && [ "${current}" -gt 0 ] 2>/dev/null; then
-    say "Ruhelaenge bleibt bei ${current} px (bereits eingetragen)."
+    say "Resting length stays at ${current} px (already configured)."
 else
     length="$(measure_length)"
     if [ -n "${length}" ] && [ "${length}" -gt 0 ] 2>/dev/null; then
         kwriteconfig6 --file kwinrc --group "Script-$ID" --key restLength "$length"
-        say "Ruhelaenge gemessen und eingetragen: ${length} px"
+        say "Resting length measured and written: ${length} px"
     else
-        say "Ruhelaenge NICHT messbar. Bitte in den Einstellungen eintragen, sonst bleibt das Skript passiv."
+        say "Resting length could NOT be measured. Set it in the settings, otherwise the script stays passive."
     fi
 fi
 
 kwriteconfig6 --file kwinrc --group Plugins --key "${ID}Enabled" true
-say "Skript in kwinrc aktiviert."
+say "Script enabled in kwinrc."
 
-# reconfigure schreibt nur die Konfiguration um, es laedt kein Skript neu.
-# Gemessen am 24.10.2026: ohne unload/load lief das alte Skript weiter.
+# reconfigure only rewrites configuration, it does not reload a script.
 kwin /Scripting org.kde.kwin.Scripting.unloadScript "$ID" >/dev/null 2>&1 || true
 kwin /Scripting org.kde.kwin.Scripting.loadScript "$SKRIPT" "$ID" >/dev/null || true
 kwin /Scripting org.kde.kwin.Scripting.start >/dev/null || true
 sleep 1
 
-if journalctl --user --since "15 seconds ago" -o cat --no-pager 2>/dev/null | grep -q "panelweite: started"; then
-    say "Skript laeuft."
+if journalctl --user --since "15 seconds ago" -o cat --no-pager 2>/dev/null | grep -q "panel-full-width: started"; then
+    say "Script is running."
 else
-    say "Skript meldet sich nicht im Journal. Pruefen mit: journalctl --user --since '2 min ago' | grep panelweite"
+    say "Script did not report to the journal. Check: journalctl --user --since '2 min ago' | grep panel-full-width"
 fi

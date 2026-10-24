@@ -7,14 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>430</width>
-    <height>400</height>
+    <height>340</height>
    </rect>
   </property>
   <layout class="QFormLayout" name="formLayout">
    <item row="0" column="0">
     <widget class="QLabel" name="labelEnabled">
      <property name="text">
-      <string>Panelweite aktiv</string>
+      <string>Panel full width enabled</string>
      </property>
     </widget>
    </item>
@@ -28,7 +28,7 @@
    <item row="1" column="0">
     <widget class="QLabel" name="labelRestLength">
      <property name="text">
-      <string>Ruhelaenge in px</string>
+      <string>Resting length (px)</string>
      </property>
     </widget>
    </item>
@@ -48,7 +48,7 @@
    <item row="2" column="0" colspan="2">
     <widget class="QLabel" name="hintRestLength">
      <property name="text">
-      <string>Laenge, auf die das Panel zurueckspringt. -1 laesst das Skript passiv, damit es nie ein Panel verbreitert, ohne es zurueckzusetzen. tools/install.sh traegt hier die gemessene Laenge ein.</string>
+      <string>Length the panel returns to. -1 keeps the script passive, so it never widens a panel without a known way back. tools/install.sh measures and fills this in on the first install.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -58,7 +58,7 @@
    <item row="3" column="0">
     <widget class="QLabel" name="labelPanelIndex">
      <property name="text">
-      <string>Panel-Index</string>
+      <string>Panel index</string>
      </property>
     </widget>
    </item>
@@ -75,7 +75,7 @@
    <item row="4" column="0" colspan="2">
     <widget class="QLabel" name="hintPanelIndex">
      <property name="text">
-      <string>Position des Panels in der Plasma-Panel-Liste. Bei einem einzigen Panel bleibt 0 richtig.</string>
+      <string>Position of the panel in the plasma panel list. With a single panel, 0 is correct.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -83,40 +83,23 @@
     </widget>
    </item>
    <item row="5" column="0" colspan="2">
-    <widget class="QCheckBox" name="kcfg_pinIcons">
+    <widget class="QCheckBox" name="kcfg_onlyPanelScreen">
      <property name="text">
-      <string>Symbole an ihrer Stelle lassen, nur die Raender der Leiste wachsen</string>
+      <string>Only count windows on the panel's screen</string>
      </property>
     </widget>
    </item>
    <item row="6" column="0" colspan="2">
-    <widget class="QLabel" name="hintPinIcons">
+    <widget class="QCheckBox" name="kcfg_sameDesktopOnly">
      <property name="text">
-      <string>Legt zwei unsichtbare Panel-Spacer an (Anfang und Ende), die den zusaetzlichen Platz fressen. Ohne Haken verteilt Plasma die Symbole ueber die ganze Breite. Der Haken wird beim Start des Skripts angewendet.</string>
-     </property>
-     <property name="wordWrap">
-      <bool>true</bool>
+      <string>Only count windows on the current desktop</string>
      </property>
     </widget>
    </item>
    <item row="7" column="0" colspan="2">
-    <widget class="QCheckBox" name="kcfg_onlyPanelScreen">
-     <property name="text">
-      <string>Nur Fenster auf dem Bildschirm des Panels zaehlen</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="0" colspan="2">
-    <widget class="QCheckBox" name="kcfg_sameDesktopOnly">
-     <property name="text">
-      <string>Nur Fenster auf dem aktuellen Desktop zaehlen</string>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="0" colspan="2">
     <widget class="QCheckBox" name="kcfg_includeFullscreen">
      <property name="text">
-      <string>Auch bei Vollbild-Fenstern verbreitern</string>
+      <string>Also expand for fullscreen windows</string>
      </property>
     </widget>
    </item>

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 //
-// Panelweite: the floating panel grows to the full screen width while a window
-// is maximized, and returns to its resting length afterwards.
+// Panel Full Width on Maximized Windows (KWin script, Plasma 6).
+//
+// The floating panel grows to the full screen width while a window is
+// maximized and returns to its resting length afterwards.
 //
 // Deliberately narrow: this script reads only its own configuration from
 // kwinrc and talks only to org.kde.plasmashell. No network, no file access,
@@ -48,8 +50,7 @@ function loadConfig() {
         panelIndex: cfgInt("panelIndex", 0, PANEL_INDEX_MIN, PANEL_INDEX_MAX),
         onlyPanelScreen: cfgBool("onlyPanelScreen", true),
         includeFullscreen: cfgBool("includeFullscreen", false),
-        sameDesktopOnly: cfgBool("sameDesktopOnly", true),
-        pinIcons: cfgBool("pinIcons", false)
+        sameDesktopOnly: cfgBool("sameDesktopOnly", true)
     };
 }
 
@@ -123,54 +124,20 @@ function wantsFullWidth() {
     return false;
 }
 
-// The only outbound call. Both values are validated integers, so no window
-// title, class name or other foreign string can reach the script payload.
+// The only outbound call. The value is a validated integer, so no window title,
+// class name or other foreign string can reach the script payload. Note that
+// evaluateScript runs at top level: a bare `return` there would be a SyntaxError
+// and the whole payload would silently do nothing.
 function sendLength(length) {
     var n = parseInt(length, 10);
     if (isNaN(n) || n < LENGTH_MIN || n > LENGTH_MAX) {
-        print("panelweite: refusing length " + length);
+        print("panel-full-width: refusing length " + length);
         return;
     }
     var payload = "var p = panels()[" + cfg.panelIndex + "]; if (p) { p.length = " + n + "; }";
     callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
              "evaluateScript", payload);
-    print("panelweite: panel " + cfg.panelIndex + " length -> " + n);
-}
-
-// Keeping the icons in place is done with two panel spacers: one at the very
-// start, one at the very end of the panel. They eat the extra width, so the
-// applets stay where they were. Without them Plasma spreads the applets over
-// the full length and the content wanders with the edges.
-//
-// Both states are created here and not in the installer, so the checkbox is the
-// single source of truth. The payload contains no foreign strings. evaluateScript
-// runs at top level, so a bare `return` would be a SyntaxError and the whole
-// payload would silently do nothing.
-function syncSpacers() {
-    var idx = cfg.panelIndex;
-    var payload;
-    if (cfg.pinIcons) {
-        payload = "var p = panels()[" + idx + "]; if (p) {" +
-                  " var ws = p.widgets(); var sp = [];" +
-                  " for (var i = 0; i < ws.length; i++) {" +
-                  "  if (ws[i].type === 'org.kde.plasma.panelspacer') { sp.push(ws[i]); }" +
-                  " }" +
-                  " while (sp.length < 2) { sp.push(p.addWidget('org.kde.plasma.panelspacer')); }" +
-                  " while (sp.length > 2) { sp.pop().remove(); }" +
-                  " sp[0].index = 0;" +
-                  " sp[sp.length - 1].index = 9999;" +
-                  " }";
-    } else {
-        payload = "var p = panels()[" + idx + "]; if (p) {" +
-                  " var ws = p.widgets();" +
-                  " for (var i = ws.length - 1; i >= 0; i--) {" +
-                  "  if (ws[i].type === 'org.kde.plasma.panelspacer') { ws[i].remove(); }" +
-                  " }" +
-                  " }";
-    }
-    callDBus("org.kde.plasmashell", "/PlasmaShell", "org.kde.PlasmaShell",
-             "evaluateScript", payload);
-    print("panelweite: pin icons " + (cfg.pinIcons ? "on" : "off"));
+    print("panel-full-width: panel " + cfg.panelIndex + " length -> " + n);
 }
 
 function apply(expand) {
@@ -219,14 +186,13 @@ function watchWindow(w) {
 function init() {
     loadConfig();
     if (!cfg.enabled) {
-        print("panelweite: disabled in configuration");
+        print("panel-full-width: disabled in configuration");
         return;
     }
     if (cfg.restLength < 0) {
-        print("panelweite: no resting length configured, staying passive");
+        print("panel-full-width: no resting length configured, staying passive");
         return;
     }
-    syncSpacers();
     var wins = workspace.windowList();
     for (var i = 0; i < wins.length; i++) {
         watchWindow(wins[i]);
@@ -238,7 +204,7 @@ function init() {
     workspace.windowRemoved.connect(update);
     workspace.currentDesktopChanged.connect(update);
     workspace.screensChanged.connect(update);
-    print("panelweite: started, resting length " + cfg.restLength + " px");
+    print("panel-full-width: started, resting length " + cfg.restLength + " px");
     update();
 }
 

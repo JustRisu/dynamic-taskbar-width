@@ -1,15 +1,18 @@
-# Panelweite
+# Panel Full Width on Maximized Windows
 
-Ein KWin-Skript für KDE Plasma 6: Das schwebende Panel wächst auf die volle
-Bildschirmbreite, sobald ein Fenster maximiert ist, und springt beim
-Wiederherstellen auf seine Ruhelänge zurück.
+A KWin script for KDE Plasma 6: the floating panel grows to the full screen
+width while a window is maximized, and returns to its resting length when the
+window is restored.
 
-## Voraussetzungen
+**Languages:** English, German. The script and its settings page follow the
+system language.
 
-- KDE Plasma 6 (getestet mit 6.8.1 auf Wayland)
-- Ein Plasma-Panel, dessen Länge sich per `panels()[i].length` setzen lässt
-  (Standard-Panel, `org.kde.panel`)
-- `qdbus6`, `kpackagetool6`, `kwriteconfig6` (Teil von Plasma)
+## Requirements
+
+- KDE Plasma 6 (tested with 6.8.1 on Wayland)
+- A plasma panel whose length can be set through `panels()[i].length`
+  (the standard `org.kde.panel` containment)
+- `qdbus6`, `kpackagetool6`, `kwriteconfig6` (shipped with Plasma)
 
 ## Installation
 
@@ -17,79 +20,78 @@ Wiederherstellen auf seine Ruhelänge zurück.
 ./tools/install.sh
 ```
 
-Das Skript installiert das Paket, misst die aktuelle Panel-Länge über
-evaluateScript und trägt sie als Ruhelänge ein, aktiviert das Skript in
-`kwinrc` und lädt KWin neu.
+The script installs the package, measures the current panel length through
+evaluateScript, writes it as the resting length, enables the script in
+`kwinrc` and reloads it.
 
-Von Hand:
+Manual installation:
 
 ```bash
 kpackagetool6 --type KWin/Script --install package
-kwriteconfig6 --file kwinrc --group Script-panelweite --key restLength 1316
-kwriteconfig6 --file kwinrc --group Plugins --key panelweiteEnabled true
-qdbus6 org.kde.KWin /KWin reconfigure
+kwriteconfig6 --file kwinrc --group Script-panel-full-width --key restLength 1316
+kwriteconfig6 --file kwinrc --group Plugins --key panel-full-widthEnabled true
+qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript panel-full-width
+qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript \
+  "$HOME/.local/share/kwin/scripts/panel-full-width/contents/code/main.js" panel-full-width
+qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.start
 ```
 
-## Einstellungen
+## Settings
 
-Systemeinstellungen → Fensterverwaltung → KWin-Skripte → Panelweite →
-Zahnrad. Die Seite ist eine Qt-Designer-Datei (`contents/ui/config.ui`, XML mit Objektnamen `kcfg_<schlüssel>`), keine QML-Datei. Dort lassen sich ändern:
+System Settings → Window Management → KWin Scripts → "Panel Full Width on
+Maximized Windows" → gear icon (or `kcmshell6 kcm_kwin_scripts`). The page is a
+Qt Designer file (`contents/ui/config.ui`, XML with `kcfg_` object names), not
+QML; the keys live in `contents/config/main.xml` and are read with `readConfig`
+from `[Script-panel-full-width]` in `kwinrc`.
 
-| Einstellung | Bedeutung | Vorgabe |
+| Setting | Meaning | Default |
 |---|---|---|
-| Aktiv | Skript komplett an oder aus | an |
-| Ruhelänge (px) | Länge, auf die das Panel zurückspringt. `-1` = passiv, kein Eingriff | -1 |
-| Panel-Index | Position des Panels in `panels()`, bei einem Panel `0` | 0 |
-| Symbole fixieren | Symbole bleiben an ihrer Stelle, nur die Ränder der Leiste wachsen (zwei Panel-Spacer) | aus |
-| Nur eigener Bildschirm | Nur Fenster auf dem Bildschirm des Panels zählen | an |
-| Nur aktueller Desktop | Fenster auf anderen Desktops ignorieren | an |
-| Auch bei Vollbild | Auch Vollbild-Fenster verbreitern das Panel | aus |
+| Enabled | Script on or off | on |
+| Resting length (px) | Length the panel returns to. `-1` = passive, no change | -1 |
+| Panel index | Position of the panel in `panels()`, `0` for a single panel | 0 |
+| Only count windows on the panel's screen | Ignore windows on other screens | on |
+| Only count windows on the current desktop | Ignore windows on other desktops | on |
+| Also expand for fullscreen windows | Fullscreen windows widen the panel too | off |
 
-## Sicherheit
+## Security
 
-- Das Skript liest ausschließlich seine eigene Konfiguration aus `kwinrc`
-  (`readConfig`).
-- Es spricht ausschließlich mit `org.kde.plasmashell`
-  (`/PlasmaShell`, `evaluateScript`).
-- Kein Netzwerk, kein Dateizugriff, kein Start von Programmen, keine
-  Hintergrunddienste, keine Secrets.
-- Die Werte im erzeugten Skript sind geprüfte Ganzzahlen (32 bis 20000,
-  Panel-Index 0 bis 16). Fenstertitel, Klassennamen oder andere fremde
-  Zeichenketten gelangen nicht in den Aufruf.
-- Ohne gesetzte Ruhelänge tut das Skript nichts. Ein Panel kann dadurch nicht
-  breit hängen bleiben.
+- Reads only its own configuration through `readConfig`.
+- Talks only to `org.kde.plasmashell` (`/PlasmaShell`, `evaluateScript`).
+- No network, no file access, no process execution, no background service, no
+  secrets, no telemetry.
+- The value in the generated script is a checked integer (32 to 20000), the
+  panel index is an integer from 0 to 16. Window titles or class names never
+  reach the payload, so string injection is ruled out.
+- Without a configured resting length the script stays passive. It can never
+  widen a panel without a known way back.
 
-## Grenzen
+## Limitations
 
-- **Symbole fixieren fasst das Panel an.** Dafür legt das Skript zwei
-  Panel-Spacer an (Anfang und Ende), ohne den Haken entfernt es sie wieder.
-  Ohne Spacer verteilt Plasma die Applets über die volle Länge, der Inhalt
-  wandert dann mit den Rändern mit. Der Zustand wird beim Start des Skripts
-  hergestellt, nicht bei jedem Maximieren.
+- **Tiling** (dragging a window to the edge, KWin 6 tiling) is not evaluated.
+  Only real maximization counts.
+- **The resting length is a fixed number.** If the panel is changed by hand and
+  kept that way, the value has to be adjusted in the settings.
+- **Persistence:** the length set through `evaluateScript` does not end up in
+  `plasma-org.kde.plasma.desktop-appletsrc` (checked with md5 before and after),
+  so a crash does not leave a wide panel behind. The script still normalizes on
+  startup.
+- **One panel.** With several panels the widest dock is taken as the panel, and
+  `panels()[panelIndex]` is the one that gets changed.
 
-- **Tiling** (Fenster an den Rand ziehen, KWin 6 Kacheln) wird nicht
-  ausgewertet. Nur echte Maximierung zählt.
-- **Ruhelänge ist ein fester Wert.** Wird das Panel von Hand dauerhaft
-  verändert, muss der Wert in den Einstellungen nachgezogen werden.
-- **Persistenz:** Die per `evaluateScript` gesetzte Länge landet nicht in
-  `plasma-org.kde.plasma.desktop-appletsrc` (gemessen mit md5 vor und nach dem
-  Setzen). Ein Absturz hinterlässt deshalb kein breites Panel; beim Start
-  normalisiert das Skript trotzdem.
-- **Nur ein Panel.** Bei mehreren Panels wird das breiteste Dock als Panel
-  erkannt, gesetzt wird `panels()[panelIndex]`.
-
-## Aufbau
+## Layout
 
 ```
 package/
-├── metadata.json              KPackage-Metadaten, X-KDE-ConfigModule
-└── contents/
-    ├── code/main.js           Logik: Sensor, Zustand, D-Bus-Aufruf
-    ├── config/main.xml        KConfigXT-Definition der Einstellungen
-    └── ui/config.ui           Einstellungsdialog (Qt-Designer, XML)
-tools/install.sh               Installation plus Messung der Ruhelänge
+├── metadata.json              KPackage metadata, X-KDE-ConfigModule, translations
+├── contents/
+│   ├── code/main.js           configuration, sensor, one D-Bus call
+│   ├── config/main.xml        KConfigXT definition of the settings
+│   ├── ui/config.ui           settings page (Qt Designer XML, kcfg_ object names)
+│   └── locale/de/LC_MESSAGES/ German translation of the settings page
+po/de.po                       translation source
+tools/install.sh               installation plus first-time measurement
 ```
 
-## Lizenz
+## License
 
-MIT, siehe `LICENSE`.
+MIT, see `LICENSE`.
