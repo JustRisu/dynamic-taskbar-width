@@ -33,7 +33,7 @@ qdbus6 org.kde.KWin /KWin reconfigure
 ## Einstellungen
 
 Systemeinstellungen → Fensterverwaltung → KWin-Skripte → Panelweite →
-Zahnrad. Dort lassen sich ändern:
+Zahnrad. Die Seite ist eine Qt-Designer-Datei (`contents/ui/config.ui`, XML mit Objektnamen `kcfg_<schlüssel>`), keine QML-Datei. Dort lassen sich ändern:
 
 | Einstellung | Bedeutung | Vorgabe |
 |---|---|---|
