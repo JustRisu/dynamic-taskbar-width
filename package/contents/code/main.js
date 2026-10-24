@@ -296,10 +296,24 @@ function expandPinned(output, done) {
         var target = targetWidth(full);
         saved = {rest: rest, length: st.length, min: st.min, max: st.max};
         appliedMode = st.mode;
+        var side = Math.max(0, Math.round((target - rest) / 2));
         if (st.mode === "custom") {
-            // In custom mode the panel width is the content length clamped to
-            // [minimumLength, maximumLength], so the clamp has to allow the
-            // target before the spacers can reach it.
+            // In custom mode the panel is its content length clamped to
+            // [minimumLength, maximumLength], which gives two different cases:
+            //  - the spacers can push the content up to the target, then only
+            //    the clamp has to allow it and the spacers do the work;
+            //  - the clamp is already wider than the content (a panel with a
+            //    fixed length, min == max). Then the clamp dictates the width
+            //    and spacers only shift the content around, so the clamp is
+            //    pinned to the target instead and the spacers stay at zero.
+            if (st.length + 2 * side < st.min) {
+                print("dynamic-taskbar-width: custom mode, the clamp " + st.min +
+                      ".." + st.max + " is wider than the panel content, so it " +
+                      "sets the width: pinning it to " + target + " px");
+                sendClamp(target, target);
+                done();
+                return;
+            }
             var lo = Math.min(st.min, target);
             var hi = Math.max(st.max, target);
             sendClamp(lo, hi);
@@ -315,7 +329,6 @@ function expandPinned(output, done) {
             done();
             return;
         }
-        var side = Math.max(0, Math.round((target - rest) / 2));
         print("dynamic-taskbar-width: " + st.mode + " mode, panel " + rest +
               " px, screen " + full + " px, spacer " + side + " px, target " +
               target + " px");

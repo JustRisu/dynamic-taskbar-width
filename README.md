@@ -34,7 +34,7 @@ user.
 | Mode | Panel width | What the script does |
 |---|---|---|
 | `fit` (fit content) | content width + floating paddings | sets both spacer widgets to `(screen − panel) / 2`, the panel grows around them |
-| `custom` | content width + paddings, clamped to `[minimumLength, maximumLength]` | widens the clamp so the target width is allowed, then sets the spacers; on the way back it restores the old clamps and the old length |
+| `custom` | content width + paddings, clamped to `[minimumLength, maximumLength]` | widens the clamp so the target width is allowed, then sets the spacers; on the way back it restores the old clamps and the old length. If the clamp is already wider than the content (a panel with a fixed length, `min == max`), it pins the clamp to the target instead, see the limits below |
 | `fill` | always the screen width | nothing, one journal line explaining why |
 
 Neither mode nor clamp is touched on startup: the script only acts when a
@@ -161,6 +161,15 @@ there.
   with no extra task and 1396 px with one. The script measures the width at the
   moment it expands and returns to that value, not to a number from the
   settings.
+- **A panel with a fixed length cannot pin the icons.** With `minimumLength ==
+  maximumLength` the clamp decides the width, not the content, so the spacer
+  widgets are useless there: Plasma lays the applet row out as one block that
+  caps at 2944 px and gets centred inside the wider panel. Measured with a
+  2956 px panel that has to reach 3434 px: the row stays 2944 px wide, and the
+  icons move by `(3434 − 2956) / 2 = 239 px`. The script pins the clamp to the
+  target so the panel does grow and the window gets its full width, but the
+  icons go with it. Use a clamp range (for example `min = 600`) if the icons
+  should stay put, or accept the shift.
 - **One panel.** With several panels the widest dock is taken as the panel, and
   `panels()[panelIndex]` is the one that gets changed.
 
