@@ -309,7 +309,8 @@ function expandPinned(output, done) {
             if (st.length + 2 * side < st.min) {
                 print("dynamic-taskbar-width: custom mode, the clamp " + st.min +
                       ".." + st.max + " is wider than the panel content, so it " +
-                      "sets the width: pinning it to " + target + " px");
+                      "sets the width: pinning it to " + target + " px, the icons " +
+                      "cannot be held in this mode");
                 sendClamp(target, target);
                 done();
                 return;

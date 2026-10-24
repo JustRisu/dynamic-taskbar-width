@@ -163,13 +163,18 @@ there.
   settings.
 - **A panel with a fixed length cannot pin the icons.** With `minimumLength ==
   maximumLength` the clamp decides the width, not the content, so the spacer
-  widgets are useless there: Plasma lays the applet row out as one block that
-  caps at 2944 px and gets centred inside the wider panel. Measured with a
-  2956 px panel that has to reach 3434 px: the row stays 2944 px wide, and the
-  icons move by `(3434 − 2956) / 2 = 239 px`. The script pins the clamp to the
-  target so the panel does grow and the window gets its full width, but the
-  icons go with it. Use a clamp range (for example `min = 600`) if the icons
-  should stay put, or accept the shift.
+  widgets are useless there. Plasma then lays the applet row out either as a
+  block that caps at 2944 px and is centred, or stretched over the whole
+  panel, and which of the two it does was not stable between runs (observed
+  with the same panel and the same code, once capped at 2944 px, once filled).
+  In both cases the icons move together with the edge: measured with a
+  2956 px panel that has to reach 3434 px, they move by `(3434 − 2956) / 2 =
+  239 px`. The script pins the clamp to the target so the panel does grow and
+  the window gets its full width, but the icons go with it. A spacer of the
+  floating padding (8 px) held them within 1 px in a manual run and did not
+  hold them in a real maximize cycle, so it is not built in. Use a clamp range
+  (for example `min = 600`) if the icons have to stay put: that path is
+  measured at 0 px.
 - **One panel.** With several panels the widest dock is taken as the panel, and
   `panels()[panelIndex]` is the one that gets changed.
 
