@@ -40,6 +40,7 @@ Zahnrad. Die Seite ist eine Qt-Designer-Datei (`contents/ui/config.ui`, XML mit 
 | Aktiv | Skript komplett an oder aus | an |
 | Ruhelänge (px) | Länge, auf die das Panel zurückspringt. `-1` = passiv, kein Eingriff | -1 |
 | Panel-Index | Position des Panels in `panels()`, bei einem Panel `0` | 0 |
+| Symbole fixieren | Symbole bleiben an ihrer Stelle, nur die Ränder der Leiste wachsen (zwei Panel-Spacer) | aus |
 | Nur eigener Bildschirm | Nur Fenster auf dem Bildschirm des Panels zählen | an |
 | Nur aktueller Desktop | Fenster auf anderen Desktops ignorieren | an |
 | Auch bei Vollbild | Auch Vollbild-Fenster verbreitern das Panel | aus |
@@ -59,6 +60,12 @@ Zahnrad. Die Seite ist eine Qt-Designer-Datei (`contents/ui/config.ui`, XML mit 
   breit hängen bleiben.
 
 ## Grenzen
+
+- **Symbole fixieren fasst das Panel an.** Dafür legt das Skript zwei
+  Panel-Spacer an (Anfang und Ende), ohne den Haken entfernt es sie wieder.
+  Ohne Spacer verteilt Plasma die Applets über die volle Länge, der Inhalt
+  wandert dann mit den Rändern mit. Der Zustand wird beim Start des Skripts
+  hergestellt, nicht bei jedem Maximieren.
 
 - **Tiling** (Fenster an den Rand ziehen, KWin 6 Kacheln) wird nicht
   ausgewertet. Nur echte Maximierung zählt.
