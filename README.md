@@ -79,7 +79,7 @@ package/
 └── contents/
     ├── code/main.js           Logik: Sensor, Zustand, D-Bus-Aufruf
     ├── config/main.xml        KConfigXT-Definition der Einstellungen
-    └── ui/config.ui           Einstellungsdialog (QML)
+    └── ui/config.ui           Einstellungsdialog (Qt-Designer, XML)
 tools/install.sh               Installation plus Messung der Ruhelänge
 ```
 

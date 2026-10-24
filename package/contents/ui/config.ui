@@ -1,68 +1,110 @@
-import QtQuick
-import QtQuick.Controls as QQC2
-import QtQuick.Layouts
-import org.kde.kirigami as Kirigami
-
-Kirigami.FormLayout {
-    id: page
-
-    property alias cfg_enabled: enabledBox.checked
-    property alias cfg_restLength: restLengthSpin.value
-    property alias cfg_panelIndex: panelIndexSpin.value
-    property alias cfg_onlyPanelScreen: onlyPanelScreenBox.checked
-    property alias cfg_includeFullscreen: includeFullscreenBox.checked
-    property alias cfg_sameDesktopOnly: sameDesktopBox.checked
-
-    QQC2.CheckBox {
-        id: enabledBox
-        Kirigami.FormData.label: i18n("Panelweite aktiv:")
-    }
-
-    QQC2.SpinBox {
-        id: restLengthSpin
-        Kirigami.FormData.label: i18n("Ruhelaenge (px):")
-        from: -1
-        to: 20000
-        stepSize: 10
-    }
-
-    QQC2.Label {
-        text: i18n("Die Laenge, auf die das Panel zurueckspringt. -1 laesst das Skript passiv, damit es nie ein Panel verbreitert, ohne es zurueckzusetzen. Der Wert wird von tools/install.sh gemessen und eingetragen.")
-        wrapMode: Text.WordWrap
-        font: Kirigami.Theme.smallFont
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 22
-    }
-
-    Item {
-        Kirigami.FormData.isSection: true
-    }
-
-    QQC2.SpinBox {
-        id: panelIndexSpin
-        Kirigami.FormData.label: i18n("Panel-Index:")
-        from: 0
-        to: 16
-    }
-
-    QQC2.Label {
-        text: i18n("Position des Panels in der Plasma-Panel-Liste. Bei einem einzigen Panel bleibt 0 richtig.")
-        wrapMode: Text.WordWrap
-        font: Kirigami.Theme.smallFont
-        Layout.maximumWidth: Kirigami.Units.gridUnit * 22
-    }
-
-    QQC2.CheckBox {
-        id: onlyPanelScreenBox
-        Kirigami.FormData.label: i18n("Nur eigener Bildschirm:")
-    }
-
-    QQC2.CheckBox {
-        id: sameDesktopBox
-        Kirigami.FormData.label: i18n("Nur aktueller Desktop:")
-    }
-
-    QQC2.CheckBox {
-        id: includeFullscreenBox
-        Kirigami.FormData.label: i18n("Auch bei Vollbild:")
-    }
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Config</class>
+ <widget class="QWidget" name="Config">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>430</width>
+    <height>360</height>
+   </rect>
+  </property>
+  <layout class="QFormLayout" name="formLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="labelEnabled">
+     <property name="text">
+      <string>Panelweite aktiv</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QCheckBox" name="kcfg_enabled">
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="labelRestLength">
+     <property name="text">
+      <string>Ruhelaenge in px</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QSpinBox" name="kcfg_restLength">
+     <property name="minimum">
+      <number>-1</number>
+     </property>
+     <property name="maximum">
+      <number>20000</number>
+     </property>
+     <property name="singleStep">
+      <number>10</number>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0" colspan="2">
+    <widget class="QLabel" name="hintRestLength">
+     <property name="text">
+      <string>Laenge, auf die das Panel zurueckspringt. -1 laesst das Skript passiv, damit es nie ein Panel verbreitert, ohne es zurueckzusetzen. tools/install.sh traegt hier die gemessene Laenge ein.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="labelPanelIndex">
+     <property name="text">
+      <string>Panel-Index</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QSpinBox" name="kcfg_panelIndex">
+     <property name="minimum">
+      <number>0</number>
+     </property>
+     <property name="maximum">
+      <number>16</number>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QLabel" name="hintPanelIndex">
+     <property name="text">
+      <string>Position des Panels in der Plasma-Panel-Liste. Bei einem einzigen Panel bleibt 0 richtig.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="2">
+    <widget class="QCheckBox" name="kcfg_onlyPanelScreen">
+     <property name="text">
+      <string>Nur Fenster auf dem Bildschirm des Panels zaehlen</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0" colspan="2">
+    <widget class="QCheckBox" name="kcfg_sameDesktopOnly">
+     <property name="text">
+      <string>Nur Fenster auf dem aktuellen Desktop zaehlen</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="2">
+    <widget class="QCheckBox" name="kcfg_includeFullscreen">
+     <property name="text">
+      <string>Auch bei Vollbild-Fenstern verbreitern</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
